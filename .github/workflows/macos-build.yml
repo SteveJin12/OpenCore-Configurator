@@ -10,37 +10,43 @@ jobs:
 
       - name: 编译 OpenCore Configurator
         run: |
-          # 验证Xcode版本（可选）
+          # 验证Xcode版本
           xcodebuild -version
-          # 使用项目真实名称编译（注意空格和路径）
+          # 修复命令行语法：移除多余空格，确保参数连续
           xcodebuild -project "OpenCore Configurator.xcodeproj" \
             -scheme "OpenCore Configurator" \
             -configuration Release \
+            -derivedDataPath build \
             build \
-            SYMROOT=$(pwd)/build \
-            ONLY_ACTIVE_ARCH=NO \  # 兼容不同架构
-            CODE_SIGNING_REQUIRED=NO  # 跳过代码签名（无开发者账号时）
+            ONLY_ACTIVE_ARCH=NO \
+            CODE_SIGNING_REQUIRED=NO
 
       - name: 打包成DMG安装包
         run: |
-          # 安装dmg打包工具
           brew install create-dmg
-          # 生成DMG文件（适配OpenCore Configurator）
-          create-dmg \
-            --volname "OpenCore Configurator" \
-            --window-pos 200 120 \
-            --window-size 800 400 \
-            --icon-size 128 \
-            --icon "OpenCore Configurator.app" 200 200 \
-            --hide-extension "OpenCore Configurator.app" \
-            --app-drop-link 600 200 \
-            "OpenCore Configurator.dmg" \
-            "build/Release/"
+          # 先确认.app文件存在
+          if [ -d "build/Build/Products/Release/OpenCore Configurator.app" ]; then
+            # 适配Xcode 16的产物路径（derivedDataPath 模式）
+            create-dmg \
+              --volname "OpenCore Configurator" \
+              --window-pos 200 120 \
+              --window-size 800 400 \
+              --icon-size 128 \
+              --icon "OpenCore Configurator.app" 200 200 \
+              --hide-extension "OpenCore Configurator.app" \
+              --app-drop-link 600 200 \
+              "OpenCore Configurator.dmg" \
+              "build/Build/Products/Release/"
+          else
+            echo "⚠️ .app文件未找到，跳过DMG打包"
+            # 打印目录结构，方便排查
+            ls -la build/
+          fi
 
       - name: 上传打包产物
         uses: actions/upload-artifact@v4
         with:
           name: OpenCore-Configurator-macOS
           path: |
-            build/Release/OpenCore Configurator.app
+            build/Build/Products/Release/OpenCore Configurator.app
             OpenCore Configurator.dmg
