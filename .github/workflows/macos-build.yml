@@ -1,0 +1,48 @@
+name: Build macOS App
+on: [push, pull_request]  # 推送代码/提PR时自动触发
+
+jobs:
+  build:
+    runs-on: macos-latest  # 云端macOS环境（自带Xcode）
+    steps:
+      - name: 拉取源码
+        uses: actions/checkout@v4
+
+      - name: 配置Xcode环境
+        run: |
+          xcode-select -s /Applications/Xcode.app/Contents/Developer
+          xcodebuild -version  # 验证Xcode版本
+
+      - name: 编译/打包（适配Xcode项目）
+        run: |
+          # 替换为你的Xcode项目名称（.xcodeproj）和Scheme名称
+          xcodebuild -project YourProject.xcodeproj \
+            -scheme YourScheme \
+            -configuration Release \
+            build \
+            SYMROOT=$(pwd)/build  # 编译产物输出到build目录
+
+      - name: 打包成dmg（可选，生成可分发安装包）
+        run: |
+          # 安装打包工具（需提前确认源码类型）
+          brew install create-dmg
+          # 替换为你的App路径（编译后的.app文件）
+          create-dmg \
+            --volname "YourApp" \
+            --volicon "YourIcon.icns" \  # 可选，替换为你的图标
+            --window-pos 200 120 \
+            --window-size 800 400 \
+            --icon-size 100 \
+            --icon "YourApp.app" 200 190 \
+            --hide-extension "YourApp.app" \
+            --app-drop-link 600 185 \
+            "YourApp.dmg" \
+            "build/Release/"  # .app文件所在目录
+
+      - name: 上传打包产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: macOS-App-Build
+          path: |
+            build/Release/*.app  # 原始app文件
+            *.dmg  # 打包后的dmg安装包（如果生成）
