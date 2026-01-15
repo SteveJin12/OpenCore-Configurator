@@ -1,4 +1,4 @@
-name: Build macOS App
+name: Build OpenCore Configurator (macOS)
 on: [push, pull_request]
 
 jobs:
@@ -8,37 +8,39 @@ jobs:
       - name: 拉取源码
         uses: actions/checkout@v4
 
-      # 移除了报错的xcode-select步骤，因为环境已默认配置好
-      
-      - name: 编译/打包（适配Xcode项目）
+      - name: 编译 OpenCore Configurator
         run: |
-          # 先验证Xcode是否可用（可选，用于调试）
+          # 验证Xcode版本（可选）
           xcodebuild -version
-          # 替换为你的Xcode项目名称和Scheme名称
-          xcodebuild -project YourProject.xcodeproj \
-            -scheme YourScheme \
+          # 使用项目真实名称编译（注意空格和路径）
+          xcodebuild -project "OpenCore Configurator.xcodeproj" \
+            -scheme "OpenCore Configurator" \
             -configuration Release \
             build \
-            SYMROOT=$(pwd)/build
+            SYMROOT=$(pwd)/build \
+            ONLY_ACTIVE_ARCH=NO \  # 兼容不同架构
+            CODE_SIGNING_REQUIRED=NO  # 跳过代码签名（无开发者账号时）
 
-      - name: 打包成dmg（可选）
+      - name: 打包成DMG安装包
         run: |
+          # 安装dmg打包工具
           brew install create-dmg
+          # 生成DMG文件（适配OpenCore Configurator）
           create-dmg \
-            --volname "YourApp" \
+            --volname "OpenCore Configurator" \
             --window-pos 200 120 \
             --window-size 800 400 \
-            --icon-size 100 \
-            --icon "YourApp.app" 200 190 \
-            --hide-extension "YourApp.app" \
-            --app-drop-link 600 185 \
-            "YourApp.dmg" \
+            --icon-size 128 \
+            --icon "OpenCore Configurator.app" 200 200 \
+            --hide-extension "OpenCore Configurator.app" \
+            --app-drop-link 600 200 \
+            "OpenCore Configurator.dmg" \
             "build/Release/"
 
       - name: 上传打包产物
         uses: actions/upload-artifact@v4
         with:
-          name: macOS-App-Build
+          name: OpenCore-Configurator-macOS
           path: |
-            build/Release/*.app
-            *.dmg
+            build/Release/OpenCore Configurator.app
+            OpenCore Configurator.dmg
