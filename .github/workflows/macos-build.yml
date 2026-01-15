@@ -1,12 +1,13 @@
 name: Build & Upload to Release (macOS)
-# 触发条件：1. 创建Release标签 2. 手动触发 3. 推送main分支（可选）
+# 修复：合并所有push触发规则到一个push节点下
 on:
   push:
+    # 同时匹配标签和分支触发
     tags:
-      - 'v*'  # 匹配v开头的标签（如v2.6.0、v1.0.0-beta）
-  workflow_dispatch:  # 允许手动触发
-  push:
-    branches: [ main ]  # 可选，main分支推送时也触发（仅测试）
+      - 'v*'  # v开头的标签（如v2.6.0）
+    branches:
+      - main  # main分支推送时触发（可选测试用）
+  workflow_dispatch:  # 保留手动触发
 
 jobs:
   build:
@@ -53,17 +54,14 @@ jobs:
             build/Build/Products/Release/OpenCore Configurator.app
             OpenCore Configurator.dmg
 
-      # 核心步骤：将打包文件上传到Release
+      # 核心步骤：将打包文件上传到Release（仅标签触发时执行）
       - name: 上传到GitHub Release
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')  # 仅在创建标签时执行
+        if: startsWith(github.ref, 'refs/tags/')  # 仅打标签时上传Release
         with:
-          # 指定要上传的文件（和打包产物路径一致）
           files: |
             build/Build/Products/Release/OpenCore Configurator.app
             OpenCore Configurator.dmg
-          # 可选：自动生成Release说明
           generate_release_notes: true
         env:
-          # 自动使用GitHub仓库的默认令牌（无需手动配置）
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
